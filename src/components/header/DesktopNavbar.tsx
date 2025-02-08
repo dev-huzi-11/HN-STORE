@@ -32,7 +32,7 @@ const DesktopNavbar = () => {
               <Link href={"/shop"}>Shop</Link>
             </li>
             <li className="text-black hover:text-gray-600 transition-colors duration-300">
-              <Link href={"/onsale"}>On Sale</Link>
+              <Link href={"/"}>On Sale</Link>
             </li>
             <li className="text-black hover:text-gray-600 transition-colors duration-300">
               <Link href={"/#new-arrival"}>New Arrival</Link>

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { Suspense, useEffect, useState } from "react";
 import { fetchOrderDetails } from "@/lib/fetchOrders";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
@@ -37,45 +37,54 @@ interface Order {
 
 const SECRET_KEY = process.env.NEXT_PUBLIC_ADMIN_KEY;
 
-const AdminPanel = () => {
+const AdminPanelContent = () => {
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [authChecked, setAuthChecked] = useState<boolean>(false);
   const [isAuthorized, setIsAuthorized] = useState<boolean>(false);
+  const [hydrated, setHydrated] = useState(false);
 
   const searchParams = useSearchParams();
   const router = useRouter();
 
-  // Authentication Check
+  useEffect(() => {
+    setHydrated(true);
+  }, []);
+
   useEffect(() => {
     const key = searchParams.get("key");
+
     if (key === SECRET_KEY) {
       setIsAuthorized(true);
-    } else {
-      router.replace("/"); // Redirect unauthorized users
     }
     setAuthChecked(true);
-  }, [searchParams, router]);
+  }, [searchParams]);
 
-  // Fetch Orders (Only if authorized)
+  useEffect(() => {
+    if (authChecked && !isAuthorized) {
+      router.replace("/");
+    }
+  }, [authChecked, isAuthorized, router]);
+
   useEffect(() => {
     if (isAuthorized) {
       const getOrders = async () => {
-        const data = await fetchOrderDetails();
-        setOrders(data);
-        setLoading(false);
+        try {
+          const data = await fetchOrderDetails();
+          setOrders(data);
+        } catch (error) {
+          console.error("Error fetching orders:", error);
+        } finally {
+          setLoading(false);
+        }
       };
 
       getOrders();
     }
   }, [isAuthorized]);
 
-  // Show loading until authentication is checked
-  if (!authChecked) {
-    return <div className="text-center py-20 text-xl">Checking authorization...</div>;
-  }
-
-  // Prevent rendering if not authorized
+  if (!hydrated) return null;
+  if (!authChecked) return <div className="text-center py-20 text-xl">Checking authorization...</div>;
   if (!isAuthorized) return null;
 
   return (
@@ -143,6 +152,14 @@ const AdminPanel = () => {
         </Table>
       </div>
     </div>
+  );
+};
+
+const AdminPanel = () => {
+  return (
+    <Suspense fallback={<div className="text-center py-20 text-xl">Loading...</div>}>
+      <AdminPanelContent />
+    </Suspense>
   );
 };
 

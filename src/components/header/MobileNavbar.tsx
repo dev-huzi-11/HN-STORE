@@ -66,7 +66,7 @@ const MobileNavbar = () => {
             <Link href="/shop">Shop</Link>
           </li>
           <li>
-            <Link href="/onSale">On Sale</Link>
+            <Link href="/">On Sale</Link>
           </li>
           <li>
             <Link href="/#new-arrival">New Arrival</Link>

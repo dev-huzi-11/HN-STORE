@@ -2,30 +2,48 @@
 
 import { client } from "@/sanity/lib/client";
 import { Product } from "../../../sanity.types";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
 import ProductCard from "@/components/products/ProductCard";
 import { useSearchParams } from "next/navigation";
 import { Box } from "lucide-react";
+import { Suspense } from "react";
 
 const Search = () => {
+  return (
+    <Suspense fallback={null}>
+      <SearchContent />
+    </Suspense>
+  );
+};
+
+const SearchContent = () => {
   const searchParams = useSearchParams();
-  const searchQuery = searchParams.get("query") || "";
+  const searchQuery = useMemo(
+    () => searchParams.get("query") || "",
+    [searchParams]
+  );
+
   const [products, setProducts] = useState<Product[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errors, setErrors] = useState<string | null>(null);
 
-
   useEffect(() => {
     const fetchProducts = async () => {
+      if (!searchQuery.trim()) {
+        setProducts([]);
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       setErrors(null);
 
       try {
         const query = `
-          *[_type == "product" && name match "${searchQuery.toLowerCase()}*"] {
+          *[_type == "product" && name match $query] {
             _id,
             name,
             slug,
@@ -35,7 +53,10 @@ const Search = () => {
             ratings,
           }
         `;
-        const data = await client.fetch(query);
+
+        const data = await client.fetch(query, {
+          query: `${searchQuery}*`,
+        } as Record<string, unknown>);
         setProducts(data);
       } catch (error) {
         console.error("Error fetching products:", error);
@@ -45,12 +66,7 @@ const Search = () => {
       }
     };
 
-    if (searchQuery) {
-      fetchProducts();
-    } else {
-      setProducts([]);
-      setIsLoading(false);
-    }
+    fetchProducts();
   }, [searchQuery]);
 
   return (
@@ -74,7 +90,7 @@ const Search = () => {
             </div>
           ) : products.length === 0 ? (
             <div className="h-[50vh] col-span-full flex flex-col justify-center items-center text-center space-y-4">
-              <Box size={90} className="text-gray-500"/>
+              <Box size={90} className="text-gray-500" />
               <p className="text-gray-500">
                 No products found. Please check your search query or try again
                 later.
@@ -97,19 +113,3 @@ const Search = () => {
 };
 
 export default Search;
-
-
-{/* <div className="mt-8">
-            <div className="relative">
-            <form onSubmit={handleSearch}>
-              <Input
-                type="search"
-                placeholder="Search for products..."
-                className="w-full py-2 pl-10 pr-4 bg-gray-100 rounded-lg focus:outline-none"
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-              />
-              <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-              </form>
-            </div>
-          </div> */}
